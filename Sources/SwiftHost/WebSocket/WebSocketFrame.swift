@@ -14,10 +14,9 @@ struct WebSocketFrame {
     static func parse(from data: Data) throws -> (frame: WebSocketFrame, bytesRead: Int)? {
         guard data.count >= 2 else { return nil }
 
-        var offset = 0
-        let byte0 = data[offset]
-        let byte1 = data[offset + 1]
-        offset += 2
+        let byte0 = data[data.startIndex]
+        let byte1 = data[data.startIndex + 1]
+        var offset = 2
 
         let fin = (byte0 & 0x80) != 0
         let opCodeRaw = byte0 & 0x0F
@@ -31,13 +30,15 @@ struct WebSocketFrame {
         // Handle extended payload lengths
         if payloadLength == 126 {
             guard data.count >= offset + 2 else { return nil }
-            payloadLength = UInt64(data[offset]) << 8 | UInt64(data[offset + 1])
+            let idx = data.startIndex + offset
+            payloadLength = UInt64(data[idx]) << 8 | UInt64(data[idx + 1])
             offset += 2
         } else if payloadLength == 127 {
             guard data.count >= offset + 8 else { return nil }
             payloadLength = 0
             for i in 0..<8 {
-                payloadLength = payloadLength << 8 | UInt64(data[offset + i])
+                let idx = data.startIndex + offset + i
+                payloadLength = payloadLength << 8 | UInt64(data[idx])
             }
             offset += 8
         }
@@ -46,14 +47,17 @@ struct WebSocketFrame {
         var maskKey: [UInt8]?
         if masked {
             guard data.count >= offset + 4 else { return nil }
-            maskKey = Array(data[offset..<offset + 4])
+            let startIdx = data.startIndex + offset
+            maskKey = Array(data[startIdx..<startIdx + 4])
             offset += 4
         }
 
         // Read payload
-        guard data.count >= offset + Int(payloadLength) else { return nil }
-        var payload = Data(data[offset..<offset + Int(payloadLength)])
-        offset += Int(payloadLength)
+        let payloadSize = Int(payloadLength)
+        guard payloadSize >= 0, data.count >= offset + payloadSize else { return nil }
+        let startIdx = data.startIndex + offset
+        var payload = Data(data[startIdx..<startIdx + payloadSize])
+        offset += payloadSize
 
         // Unmask payload if needed
         if let maskKey = maskKey {
