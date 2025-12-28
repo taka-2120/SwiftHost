@@ -1,0 +1,11 @@
+[tasks.build]
+description = "Build the SwiftHost package"
+run = "swift build"
+
+[tasks.test]
+description = "Run all tests"
+run = "swift test"
+
+[tasks.clean]
+description = "Clean build artifacts"
+run = "swift package clean"
