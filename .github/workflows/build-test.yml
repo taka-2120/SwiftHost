@@ -14,6 +14,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Get Swift version from Package.swift
+      id: swift-version
+      run: |
+        VERSION=$(head -n 1 Package.swift | grep -oE '[0-9]+\.[0-9]+')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "${{ steps.swift-version.outputs.version }}"
+
     - name: Build
       run: swift build
 
